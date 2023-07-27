@@ -5,6 +5,12 @@ ENV CARGO_UNSTABLE_SPARSE_REGISTRY true
 ENV CARGO_TERM_COLOR always
 ENV PATH "/root/.foundry/bin:/root/.cargo/bin:${PATH}"
 
+ENV RUSTC_WRAPPER=/usr/local/bin/sccache
+ARG AWS_ACCESS_KEY_ID
+ARG AWS_SECRET_ACCESS_KEY
+ENV SCCACHE_BUCKET=llamanodes-sccache
+ENV SCCACHE_S3_USE_SSL=true
+
 # install rustup dependencies
 # also install web3-proxy system dependencies. most things are rust-only, but not everything
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
@@ -59,6 +65,8 @@ RUN --mount=type=cache,target=/root/.cargo/git \
     set -eux; \
     \
     cargo binstall -y sccache; \
+    AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID \
+    AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY \
     sccache -s
 
 ENV RUSTC_WRAPPER "/root/.cargo/bin/sccache"
@@ -81,6 +89,8 @@ RUN --mount=type=cache,target=/root/.cargo/git \
     set -eux; \
     \
     curl -L https://foundry.paradigm.xyz | bash && foundryup; \
+    AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID \
+    AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY \
     sccache -s
 
 FROM rust as rust_with_env
@@ -138,6 +148,8 @@ RUN --mount=type=cache,target=/root/.cargo/git \
     set -eux; \
     \
     [ -e "$(pwd)/payment-contracts/src/contracts/mod.rs" ] || touch "$(pwd)/payment-contracts/build.rs"; \
+    AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID \
+    AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY \
     cargo install \
     --features "$WEB3_PROXY_FEATURES" \
     --frozen \
@@ -147,6 +159,8 @@ RUN --mount=type=cache,target=/root/.cargo/git \
     --root /usr/local \
     --verbose \
     ; \
+    AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID \
+    AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY \
     sccache -s; \
     /usr/local/bin/web3_proxy_cli --help | grep 'Usage: web3_proxy_cli'
 
